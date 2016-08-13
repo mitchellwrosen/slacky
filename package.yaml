@@ -1,0 +1,44 @@
+name: slacky
+version: 0.1.0.0
+
+ghc-options: -Wall
+
+default-extensions:
+  - LambdaCase
+  - OverloadedStrings
+  - RecordWildCards
+
+dependencies:
+  - base
+  - text
+  - unix
+
+library:
+  source-dirs: src
+  dependencies:
+    - aeson
+    - bytestring
+    - containers
+    - http-types
+    - microlens
+    - network
+    - network-uri
+    - safe-exceptions
+    - slack-api
+    - text-format
+    - wai
+    - warp
+    - wreq
+
+executables:
+  slacky:
+    source-dirs: app
+    main: Main.hs
+    ghc-options: -threaded
+    dependencies:
+      - async
+      - directory
+      - slacky
+      - stm
+      - websockets
+      - wuss

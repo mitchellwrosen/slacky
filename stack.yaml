@@ -1,0 +1,4 @@
+resolver: lts-6.11
+extra-deps:
+  - safe-exceptions-0.1.4.0
+  - slack-api-0.9
