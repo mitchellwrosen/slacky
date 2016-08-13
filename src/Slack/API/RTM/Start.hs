@@ -10,9 +10,14 @@ import Network.Wreq
 
 type ApiToken = Text
 
--- | Implement me!
 rtmStart :: ApiToken -> IO (Response LByteString)
-rtmStart token = undefined
+rtmStart token =
+  getWith (opts defaults) "https://api.slack.com/methods/rtm.start"
+ where
+  opts :: Options -> Options
+  opts = setParam "token"         token
+       . setParam "simple_latest" "true"
+       . setParam "no_unreads"    "true"
 
 -- | @setParam key val opts@ modifies @opts@ by setting param @key@ to @val@.
 setParam :: Text -> Text -> Options -> Options
