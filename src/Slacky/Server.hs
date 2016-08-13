@@ -9,23 +9,23 @@ import Slacky.Message
 import Slacky.Prelude
 
 import Data.IORef
-import Data.Text.Encoding       (decodeUtf8)
-import Data.Text.Lazy.Encoding  (encodeUtf8)
+import Data.Text.Encoding      (decodeUtf8)
+import Data.Text.Lazy.Encoding (encodeUtf8)
 import Data.Text.Format
-import System.Posix.Files       (removeLink)
+import System.Posix.Files      (removeLink)
 import Network.HTTP.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
 
-import qualified Data.List            as List
-import qualified Data.Map             as Map
-import qualified Network.Socket       as Socket
+import qualified Data.List      as List
+import qualified Data.Map       as Map
+import qualified Network.Socket as Socket
 
 data ServerState = ServerState
-  { dequeue     :: IO [Message]
-  , lastChan    :: IORef (Maybe ChannelId)
-  , send        :: LText -> IO ()
-  , names       :: Map Text Text
+  { dequeue  :: IO [Message]
+  , lastChan :: IORef (Maybe ChannelId)
+  , send     :: LText -> IO ()
+  , names    :: Map Text Text
   }
 
 newServerState
