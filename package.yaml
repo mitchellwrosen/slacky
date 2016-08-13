@@ -1,0 +1,18 @@
+name: slacky
+version: 0.1.0.0
+
+ghc-options: -Wall
+
+dependencies:
+  - base
+
+library:
+  source-dirs: src
+
+executables:
+  slacky:
+    source-dirs: app
+    main: Main.hs
+    ghc-options: -threaded
+    dependencies:
+      - slacky
