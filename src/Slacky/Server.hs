@@ -17,19 +17,19 @@ import Network.HTTP.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
 
-import qualified Data.List      as List
-import qualified Data.Map       as Map
-import qualified Network.Socket as Socket
+import qualified Data.List            as List
+import qualified Data.Map             as Map
+import qualified Network.Socket       as Socket
 
 data ServerState = ServerState
-  { dequeue     :: IO (Maybe Message)
+  { dequeue     :: IO [Message]
   , lastChan    :: IORef (Maybe ChannelId)
   , send        :: LText -> IO ()
   , names       :: Map Text Text
   }
 
 newServerState
-  :: IO (Maybe Message) -> (LText -> IO ()) -> Map Text Text -> IO ServerState
+  :: IO [Message] -> (LText -> IO ()) -> Map Text Text -> IO ServerState
 newServerState dequeue sendMsg names = do
   lastChan <- newIORef Nothing
   pure (ServerState dequeue lastChan sendMsg names)
@@ -51,17 +51,14 @@ slackyServer :: ServerState -> Application
 slackyServer ServerState{..} req respond
   | requestMethod req == "GET" =
       dequeue >>= \case
-        Nothing -> respond (responseLBS status200 [] "")
-        Just Message{..} -> do
-          atomicWriteIORef lastChan (Just msgChannel)
-          respond (responseLBS status200 [] msg')
-         where
-          chan, user :: Text
-          chan = fromMaybe "???" (Map.lookup msgChannel names)
-          user = fromMaybe "???" (Map.lookup msgUser    names)
+        [] -> respond (responseLBS status200 [] "")
+        (m:ms) -> do
+          atomicWriteIORef lastChan (Just (msgChannel m))
 
-          msg' :: LByteString
-          msg' = encodeUtf8 (format "[{}] {}: {}\n" (chan, user, msgText))
+          let response :: LByteString
+              response = mconcat (map (formatMessage names) (reverse (m:ms)))
+
+          respond (responseLBS status200 [] response)
 
   | requestMethod req == "POST" =
       case List.lookup "text" (queryString req) of
@@ -78,3 +75,13 @@ slackyServer ServerState{..} req respond
         _ -> respond (responseLBS status400 [] "missing text param")
 
   | otherwise = respond (responseLBS status405 [] "")
+
+formatMessage :: Map Text Text -> Message -> LByteString
+formatMessage names Message{..} =
+  encodeUtf8 (format "[{}] {}: {}\n" (chan, user, msgText))
+ where
+  chan :: Text
+  chan = fromMaybe "???" (Map.lookup msgChannel names)
+
+  user :: Text
+  user = fromMaybe "???" (Map.lookup msgUser names)

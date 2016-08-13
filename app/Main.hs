@@ -2,8 +2,8 @@ module Main where
 
 import Slack.API.RTM.Start
 import Slacky.Client
-import Slacky.Lockf
 import Slacky.Globals
+import Slacky.Lockf
 import Slacky.Prelude
 import Slacky.Server
 
@@ -38,7 +38,7 @@ main' writePid token = do
 
     serverState <-
       newServerState
-        (atomically (tryReadTQueue msg_queue)) (WebSockets.sendTextData conn)
+        (atomically (emptyTQueue msg_queue)) (WebSockets.sendTextData conn)
           rtmNames
 
     let server :: IO ()
@@ -92,6 +92,15 @@ requireEnv x =
       exitWith (ExitFailure 1)
     Just y -> pure y
 
+-- | Empty a TQueue in a single giant transaction, returning elements in
+-- reverse order. Careful - this will retry like crazy if the queue is hot.
+emptyTQueue :: TQueue a -> STM [a]
+emptyTQueue q = go []
+ where
+  go xs =
+    tryReadTQueue q >>= \case
+      Nothing -> pure xs
+      Just x  -> go (x:xs)
 
 -- Note [Unrolled race]
 --
@@ -107,5 +116,5 @@ requireEnv x =
 -- So, in *our* cleanup action, first send ThreadKilled ('cancel'), then wait
 -- on the result var, trusting the server to clean up in a timely manner.
 --
--- If not (unlikey? impossible?), a second Ctrl+C will work, and the sockfile
+-- If not (unlikely? impossible?), a second Ctrl+C will work, and the sockfile
 -- might be left on disk. Oh well.
