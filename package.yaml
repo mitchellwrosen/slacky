@@ -15,6 +15,13 @@ dependencies:
 
 library:
   source-dirs: src
+  exposed-modules:
+    - Slack.API.RTM.Start
+    - Slacky.Client
+    - Slacky.Globals
+    - Slacky.Lockf
+    - Slacky.Prelude
+    - Slacky.Server
   dependencies:
     - aeson
     - bytestring

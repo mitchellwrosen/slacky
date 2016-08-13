@@ -33,12 +33,14 @@ library
   exposed-modules:
       Slack.API.RTM.Start
       Slacky.Client
-      Slacky.Daemon
       Slacky.Globals
       Slacky.Lockf
-      Slacky.Message
       Slacky.Prelude
       Slacky.Server
+  other-modules:
+      Slacky.Daemon
+      Slacky.Message
+      Paths_slacky
   default-language: Haskell2010
 
 executable slacky
