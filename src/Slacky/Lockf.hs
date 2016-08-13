@@ -8,7 +8,7 @@ import Foreign.C
 import System.Posix.Types (Fd(..))
 
 foreign import capi
-  "lockf"
+  "unistd.h lockf"
   c_lockf :: CInt -> CInt -> CInt -> IO CInt
 
 foreign import capi
