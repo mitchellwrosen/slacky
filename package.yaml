@@ -6,8 +6,15 @@ ghc-options: -Wall
 dependencies:
   - base
 
+default-extensions:
+  - OverloadedStrings
+
 library:
   source-dirs: src
+  dependencies:
+    - bytestring
+    - text
+    - wreq
 
 executables:
   slacky:

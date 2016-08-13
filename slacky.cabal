@@ -10,15 +10,24 @@ cabal-version:  >= 1.10
 library
   hs-source-dirs:
       src
+  default-extensions: OverloadedStrings
   ghc-options: -Wall
   build-depends:
       base
+    , bytestring
+    , text
+    , wreq
+  exposed-modules:
+      Control.Lens
+      Slack.API.RTM.Start
+      Slacky.Prelude
   default-language: Haskell2010
 
 executable slacky
   main-is: Main.hs
   hs-source-dirs:
       app
+  default-extensions: OverloadedStrings
   ghc-options: -Wall -threaded
   build-depends:
       base
