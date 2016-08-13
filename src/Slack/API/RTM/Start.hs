@@ -1,4 +1,6 @@
-module Slack.API.RTM.Start where
+module Slack.API.RTM.Start
+  ( rtmStart
+  ) where
 
 import Control.Lens
 import Slacky.Prelude
