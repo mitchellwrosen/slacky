@@ -15,11 +15,11 @@ library
   ghc-options: -Wall
   build-depends:
       base
+    , containers
     , text
     , unix
     , aeson
     , bytestring
-    , containers
     , http-types
     , microlens
     , network
@@ -51,6 +51,7 @@ executable slacky
   ghc-options: -Wall -threaded
   build-depends:
       base
+    , containers
     , text
     , unix
     , async

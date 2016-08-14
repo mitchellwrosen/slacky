@@ -10,6 +10,7 @@ default-extensions:
 
 dependencies:
   - base
+  - containers
   - text
   - unix
 
@@ -25,7 +26,6 @@ library:
   dependencies:
     - aeson
     - bytestring
-    - containers
     - http-types
     - microlens
     - network

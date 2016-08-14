@@ -35,8 +35,11 @@ data RtmInfo = RtmInfo
     -- ^ The host to connect to.
   , rtmPath  :: String
     -- ^ The port to connect to.
-  , rtmNames :: Map Text Text
-    -- ^ Mapping from IDs to name (e.g. "U12345678" to "Jon")
+  , rtmUsers    :: Map Text Text
+  , rtmChannels :: Map Text Text
+  , rtmGroups   :: Map Text Text
+  , rtmIMs      :: Map Text Text
+    -- ^ Mapping from IDs to names (e.g. "U12345678" to "Jon")
   } deriving Show
 
 instance FromJSON RtmInfo where
@@ -56,10 +59,7 @@ instance FromJSON RtmInfo where
           groups'   = foldr insertChannel     mempty (groups   :: [Channel])
           ims'      = foldr (insertIM users') mempty (ims      :: [IM])
 
-          names :: Map Text Text
-          names = users' <> channels' <> groups' <> ims'
-
-      pure (RtmInfo host path names)
+      pure (RtmInfo host path users' channels' groups' ims')
    where
     parseHostPath :: Text -> Parser (String, String)
     parseHostPath raw =

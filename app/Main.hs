@@ -10,6 +10,7 @@ import Slacky.Server
 import Control.Concurrent.Async
 import Control.Concurrent.STM
 import Data.Text                (pack)
+import Data.Tuple               (swap)
 import System.Directory
 import System.Exit
 import System.IO
@@ -20,6 +21,7 @@ import System.Posix.Process
 import System.Posix.Types       (ProcessID)
 import Wuss                     (runSecureClient)
 
+import qualified Data.Map           as Map
 import qualified Network.WebSockets as WebSockets
 
 main :: IO ()
@@ -39,7 +41,8 @@ main' writePid token = do
     serverState <-
       newServerState
         (atomically (emptyTQueue msg_queue)) (WebSockets.sendTextData conn)
-          rtmNames
+          (rtmUsers <> rtmChannels <> rtmGroups <> rtmIMs)
+          (invertMap (rtmChannels <> rtmGroups <> rtmIMs))
 
     let server :: IO ()
         server = runDomainSocket globalSockfile (slackyServer serverState)
@@ -101,6 +104,9 @@ emptyTQueue q = go []
     tryReadTQueue q >>= \case
       Nothing -> pure xs
       Just x  -> go (x:xs)
+
+invertMap :: Ord v => Map k v -> Map v k
+invertMap = Map.fromList . map swap . Map.assocs
 
 -- Note [Unrolled race]
 --

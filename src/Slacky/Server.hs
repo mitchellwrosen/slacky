@@ -25,14 +25,16 @@ data ServerState = ServerState
   { dequeue  :: IO [Message]
   , lastChan :: IORef (Maybe ChannelId)
   , send     :: LText -> IO ()
-  , names    :: Map Text Text
+  , names    :: Map Text Text -- id-to-name mapping
+  , ids      :: Map Text Text -- name-to-id mapping
   }
 
 newServerState
-  :: IO [Message] -> (LText -> IO ()) -> Map Text Text -> IO ServerState
-newServerState dequeue sendMsg names = do
+  :: IO [Message] -> (LText -> IO ()) -> Map Text Text -> Map Text Text
+  -> IO ServerState
+newServerState dequeue sendMsg names ids = do
   lastChan <- newIORef Nothing
-  pure (ServerState dequeue lastChan sendMsg names)
+  pure (ServerState dequeue lastChan sendMsg names ids)
 
 runDomainSocket :: FilePath -> Application -> IO ()
 runDomainSocket sockfile app =
@@ -48,33 +50,77 @@ runDomainSocket sockfile app =
           runSettingsSocket defaultSettings sock app))
 
 slackyServer :: ServerState -> Application
-slackyServer ServerState{..} req respond
-  | requestMethod req == "GET" =
-      dequeue >>= \case
-        [] -> respond (responseLBS status200 [] "")
-        (m:ms) -> do
-          atomicWriteIORef lastChan (Just (msgChannel m))
+slackyServer state req respond =
+  case pathInfo req of
+    [] -> homeR state req respond
+    _  -> respond response404
 
-          let response :: LByteString
-              response = mconcat (map (formatMessage names) (reverse (m:ms)))
+-- /
+homeR :: ServerState -> Application
+homeR state req respond
+  | requestMethod req == "GET"  = getHomeR  state req respond
+  | requestMethod req == "POST" = postHomeR state req respond
+  | otherwise                   = respond response405
 
-          respond (responseLBS status200 [] response)
+-- GET /
+--
+-- Get all messages received since the last GET.
+getHomeR :: ServerState -> Application
+getHomeR ServerState{..} _ respond =
+  dequeue >>= \case
+    [] -> respond (responseLBS status200 [] "")
+    (m:ms) -> do
+      atomicWriteIORef lastChan (Just (msgChannel m))
 
-  | requestMethod req == "POST" =
-      case List.lookup "text" (queryString req) of
-        Just (Just msg) ->
+      let response :: LByteString
+          response = mconcat (map (formatMessage names) (reverse (m:ms)))
+
+      respond (responseLBS status200 [] response)
+
+-- POST /
+--
+--   /?text=<msg>
+--
+--     Send <msg> to the last-received-from channel
+--
+--   /?text=<msg>&channel=<chan>
+--
+--     Send <msg> to <chan>
+postHomeR :: ServerState -> Application
+postHomeR ServerState{..} req respond =
+  case List.lookup "text" query of
+    Just (Just msg) ->
+      case List.lookup "channel" query of
+        Just (Just chan) ->
+          case Map.lookup (decodeUtf8 chan) ids of
+            Nothing -> respond (responseLBS status400 [] "no such channel")
+            Just chan_id -> sendMessage msg chan_id
+
+        _ ->
           readIORef lastChan >>= \case
             Nothing ->
               respond (responseLBS status400 [] "no message to reply to")
-            Just chan -> do
-              send
-                (format
-                  "{\"id\":0,\"type\":\"message\",\"channel\":\"{}\",\"text\":\"{}\"}"
-                  (chan, decodeUtf8 msg))
-              respond (responseLBS status200 [] "")
-        _ -> respond (responseLBS status400 [] "missing text param")
+            Just chan_id -> sendMessage msg chan_id
 
-  | otherwise = respond (responseLBS status405 [] "")
+    _ -> respond (responseLBS status400 [] "missing text param")
+ where
+  sendMessage :: ByteString -> ChannelId -> IO ResponseReceived
+  sendMessage msg chan_id = do
+    send
+      (format
+        "{\"id\":0,\"type\":\"message\",\"channel\":\"{}\",\"text\":\"{}\"}"
+        (chan_id, decodeUtf8 msg))
+    respond (responseLBS status200 [] "")
+
+  query :: Query
+  query = queryString req
+
+response404 :: Response
+response404 =
+  responseLBS status404 [("Content-Type", "text/plain")] "Not found"
+
+response405 :: Response
+response405 = responseLBS status405 [] ""
 
 formatMessage :: Map Text Text -> Message -> LByteString
 formatMessage names Message{..} =
