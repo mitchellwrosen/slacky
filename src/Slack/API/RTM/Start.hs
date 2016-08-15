@@ -85,13 +85,8 @@ instance FromJSON RtmInfo where
 rtmStartUrl :: String
 rtmStartUrl = "https://slack.com/api/rtm.start"
 
-rtmStart :: ApiToken -> IO (Either LByteString RtmInfo)
-rtmStart token = do
-  resp <- getWith opts rtmStartUrl
-  let body = view responseBody resp
-  case decode body of
-    Nothing   -> pure (Left body)
-    Just info -> pure (Right info)
+rtmStart :: ApiToken -> IO LByteString
+rtmStart token = view responseBody <$> getWith opts rtmStartUrl
  where
   opts :: Options
   opts =

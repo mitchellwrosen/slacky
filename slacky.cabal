@@ -11,14 +11,14 @@ cabal-version:  >= 1.10
 library
   hs-source-dirs:
       src
-  default-extensions: LambdaCase OverloadedStrings NoImplicitPrelude RecordWildCards
+  default-extensions: LambdaCase OverloadedStrings MultiWayIf NoImplicitPrelude RecordWildCards
   ghc-options: -Wall
   build-depends:
-      base
+      aeson
+    , base
     , containers
     , text
     , unix
-    , aeson
     , bytestring
     , http-types
     , microlens
@@ -48,10 +48,11 @@ executable slacky
   main-is: Main.hs
   hs-source-dirs:
       app
-  default-extensions: LambdaCase OverloadedStrings NoImplicitPrelude RecordWildCards
+  default-extensions: LambdaCase OverloadedStrings MultiWayIf NoImplicitPrelude RecordWildCards
   ghc-options: -Wall -threaded
   build-depends:
-      base
+      aeson
+    , base
     , containers
     , text
     , unix

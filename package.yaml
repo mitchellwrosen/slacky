@@ -6,10 +6,12 @@ ghc-options: -Wall
 default-extensions:
   - LambdaCase
   - OverloadedStrings
+  - MultiWayIf
   - NoImplicitPrelude
   - RecordWildCards
 
 dependencies:
+  - aeson
   - base
   - containers
   - text
@@ -26,7 +28,6 @@ library:
     - Slacky.Prelude
     - Slacky.Server
   dependencies:
-    - aeson
     - bytestring
     - http-types
     - microlens

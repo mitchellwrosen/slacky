@@ -10,6 +10,7 @@ import Slacky.Server
 
 import Control.Concurrent.Async
 import Control.Concurrent.STM
+import Data.Aeson               (decode)
 import Data.Tuple               (swap)
 import System.Directory
 import System.Exit
@@ -31,21 +32,24 @@ main' :: Logger -> (ProcessID -> IO ()) -> ApiToken -> IO ()
 main' log writePid token = do
   log Info (format "GET {}" (Only rtmStartUrl))
 
+  bytes <- rtmStart token
+  log Debug (decodeUtf8 bytes)
+
   RtmInfo{..} <-
-    rtmStart token >>= \case
-      Left body -> do
+    case decode bytes of
+      Nothing -> do
         -- Just be dumb and assume the HTTP response is UTF-8 encoded, since my
         -- dumb logging framework can only log Text.
-        log Error ("Could not decode response: " <> decodeUtf8 body)
+        log Error ("Could not decode response: " <> decodeUtf8 bytes)
         exitWith (ExitFailure 1)
-
-      Right info -> pure info
+      Just info -> pure info
 
   -- TODO: add option to daemonize
 
   getProcessID >>= writePid
 
-  log Info (format "Connecting to wss://{}:433{}" (rtmHost, rtmPath))
+  log Info (format "Connecting to wss://{}:443{}" (rtmHost, rtmPath))
+
   runSecureClient rtmHost 443 rtmPath $ \conn -> do
     msg_queue <- newTQueueIO
 

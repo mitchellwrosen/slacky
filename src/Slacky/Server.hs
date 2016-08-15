@@ -58,10 +58,12 @@ slackyServer state req respond =
 
 -- /
 homeR :: ServerState -> Application
-homeR state req respond
-  | requestMethod req == "GET"  = getHomeR  state req respond
-  | requestMethod req == "POST" = postHomeR state req respond
-  | otherwise                   = respond response405
+homeR state req respond = do
+  log state Debug ("Server received: " <> show req)
+
+  if | requestMethod req == "GET"  -> getHomeR  state req respond
+     | requestMethod req == "POST" -> postHomeR state req respond
+     | otherwise                   -> respond response405
 
 -- GET /
 --
@@ -107,10 +109,15 @@ postHomeR ServerState{..} req respond =
  where
   sendMessage :: ByteString -> ChannelId -> IO ResponseReceived
   sendMessage msg chan_id = do
-    send
-      (format
-        "{\"id\":0,\"type\":\"message\",\"channel\":\"{}\",\"text\":\"{}\"}"
-        (chan_id, decodeUtf8 msg))
+    let json :: LText
+        json =
+          format
+            "{\"id\":0,\"type\":\"message\",\"channel\":\"{}\",\"text\":\"{}\"}"
+            (chan_id, decodeUtf8 msg)
+
+    log Debug ("Server sending: " <> json)
+    send json
+
     respond (responseLBS status200 [] "")
 
   query :: Query
