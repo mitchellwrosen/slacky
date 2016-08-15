@@ -2,7 +2,9 @@ module Slacky.Daemon
   ( daemon
   ) where
 
-import Control.Concurrent
+import Slacky.Prelude
+
+import Control.Concurrent   (myThreadId)
 import Control.Exception    (AsyncException(UserInterrupt))
 import System.Exit
 import System.Posix.IO

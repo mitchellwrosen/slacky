@@ -10,6 +10,7 @@ module Slack.API.RTM.Start
   ( RtmInfo(..)
   , ApiToken
   , rtmStart
+  , rtmStartUrl
   ) where
 
 import Slacky.Prelude
@@ -21,8 +22,6 @@ import Lens.Micro
 import Lens.Micro.Extras
 import Network.URI       (URI(..), URIAuth(..), parseURI)
 import Network.Wreq
-import System.IO
-import System.Exit
 import Web.Slack
 
 import qualified Data.Map as Map
@@ -83,15 +82,16 @@ instance FromJSON RtmInfo where
       uname :: Text
       uname = fromMaybe "???" (Map.lookup (_getId (_imUser im)) users)
 
+rtmStartUrl :: String
+rtmStartUrl = "https://slack.com/api/rtm.start"
 
-rtmStart :: ApiToken -> IO RtmInfo
+rtmStart :: ApiToken -> IO (Either LByteString RtmInfo)
 rtmStart token = do
-  resp <- getWith opts "https://slack.com/api/rtm.start"
-  case decode (view responseBody resp) of
-    Nothing -> do
-      hPutStrLn stderr "Failed to decode slack response"
-      exitWith (ExitFailure 1)
-    Just info -> pure info
+  resp <- getWith opts rtmStartUrl
+  let body = view responseBody resp
+  case decode body of
+    Nothing   -> pure (Left body)
+    Just info -> pure (Right info)
  where
   opts :: Options
   opts =

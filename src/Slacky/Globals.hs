@@ -1,5 +1,7 @@
 module Slacky.Globals where
 
+import Slacky.Prelude
+
 globalSlackyDir :: FilePath
 globalSlackyDir = ".config/slacky"
 

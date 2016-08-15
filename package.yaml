@@ -6,6 +6,7 @@ ghc-options: -Wall
 default-extensions:
   - LambdaCase
   - OverloadedStrings
+  - NoImplicitPrelude
   - RecordWildCards
 
 dependencies:
@@ -21,6 +22,7 @@ library:
     - Slacky.Client
     - Slacky.Globals
     - Slacky.Lockf
+    - Slacky.Logger
     - Slacky.Prelude
     - Slacky.Server
   dependencies:

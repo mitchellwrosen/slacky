@@ -5,13 +5,11 @@ module Slacky.Server
   , slackyServer
   ) where
 
+import Slacky.Logger
 import Slacky.Message
 import Slacky.Prelude
 
 import Data.IORef
-import Data.Text.Encoding      (decodeUtf8)
-import Data.Text.Lazy.Encoding (encodeUtf8)
-import Data.Text.Format
 import System.Posix.Files      (removeLink)
 import Network.HTTP.Types
 import Network.Wai
@@ -22,7 +20,8 @@ import qualified Data.Map       as Map
 import qualified Network.Socket as Socket
 
 data ServerState = ServerState
-  { dequeue  :: IO [Message]
+  { log      :: Logger
+  , dequeue  :: IO [Message]
   , lastChan :: IORef (Maybe ChannelId)
   , send     :: LText -> IO ()
   , names    :: Map Text Text -- id-to-name mapping
@@ -30,22 +29,24 @@ data ServerState = ServerState
   }
 
 newServerState
-  :: IO [Message] -> (LText -> IO ()) -> Map Text Text -> Map Text Text
-  -> IO ServerState
-newServerState dequeue sendMsg names ids = do
+  :: Logger -> IO [Message] -> (LText -> IO ()) -> Map Text Text
+  -> Map Text Text -> IO ServerState
+newServerState log dequeue sendMsg names ids = do
   lastChan <- newIORef Nothing
-  pure (ServerState dequeue lastChan sendMsg names ids)
+  pure (ServerState log dequeue lastChan sendMsg names ids)
 
-runDomainSocket :: FilePath -> Application -> IO ()
-runDomainSocket sockfile app =
+runDomainSocket :: Logger -> FilePath -> Application -> IO ()
+runDomainSocket log sockfile app =
   bracket
     (Socket.socket Socket.AF_UNIX Socket.Stream 0)
     (Socket.close)
     (\sock -> do
+      log Debug ("Binding server to " <> pack sockfile)
       bracket_
         (Socket.bind sock (Socket.SockAddrUnix sockfile))
         (tryAny (removeLink sockfile))
         (do
+          log Debug ("Server listening on " <> pack sockfile)
           Socket.listen sock Socket.maxListenQueue
           runSettingsSocket defaultSettings sock app))
 

@@ -4,12 +4,12 @@ import Slack.API.RTM.Start
 import Slacky.Client
 import Slacky.Globals
 import Slacky.Lockf
+import Slacky.Logger
 import Slacky.Prelude
 import Slacky.Server
 
 import Control.Concurrent.Async
 import Control.Concurrent.STM
-import Data.Text                (pack)
 import Data.Tuple               (swap)
 import System.Directory
 import System.Exit
@@ -25,32 +25,45 @@ import qualified Data.Map           as Map
 import qualified Network.WebSockets as WebSockets
 
 main :: IO ()
-main = initSlacky main'
+main = initSlacky (logStdout Debug) main'
 
-main' :: (ProcessID -> IO ()) -> ApiToken -> IO ()
-main' writePid token = do
-  RtmInfo{..} <- rtmStart token
+main' :: Logger -> (ProcessID -> IO ()) -> ApiToken -> IO ()
+main' log writePid token = do
+  log Info (format "GET {}" (Only rtmStartUrl))
+
+  RtmInfo{..} <-
+    rtmStart token >>= \case
+      Left body -> do
+        -- Just be dumb and assume the HTTP response is UTF-8 encoded, since my
+        -- dumb logging framework can only log Text.
+        log Error ("Could not decode response: " <> decodeUtf8 body)
+        exitWith (ExitFailure 1)
+
+      Right info -> pure info
 
   -- TODO: add option to daemonize
 
   getProcessID >>= writePid
 
+  log Info (format "Connecting to wss://{}:433{}" (rtmHost, rtmPath))
   runSecureClient rtmHost 443 rtmPath $ \conn -> do
     msg_queue <- newTQueueIO
 
     serverState <-
       newServerState
-        (atomically (emptyTQueue msg_queue)) (WebSockets.sendTextData conn)
-          (rtmUsers <> rtmChannels <> rtmGroups <> rtmIMs)
-          (invertMap (rtmChannels <> rtmGroups <> rtmIMs))
+        log
+        (atomically (emptyTQueue msg_queue))
+        (WebSockets.sendTextData conn)
+        (rtmUsers <> rtmChannels <> rtmGroups <> rtmIMs)
+        (invertMap (rtmChannels <> rtmGroups <> rtmIMs))
 
     let server :: IO ()
-        server = runDomainSocket globalSockfile (slackyServer serverState)
+        server = runDomainSocket log globalSockfile (slackyServer serverState)
 
         client :: IO ()
         client =
           slackyClient
-            (clientState (atomically . writeTQueue msg_queue)
+            (clientState log (atomically . writeTQueue msg_queue)
               (WebSockets.receiveData conn))
 
     -- Note [Unrolled race]
@@ -66,10 +79,17 @@ main' writePid token = do
 --
 -- If successfull, passes the "write pid to pidfile" action and the Slack API
 -- token to the provided continuation.
-initSlacky :: ((ProcessID -> IO ()) -> ApiToken -> IO ()) -> IO ()
-initSlacky act = do
+initSlacky
+  :: Logger -> (Logger -> (ProcessID -> IO ()) -> ApiToken -> IO ()) -> IO ()
+initSlacky log act = do
   home <- getHomeDirectory
-  token <- requireEnv "SLACK_API_TOKEN"
+
+  token <-
+    getEnv "SLACK_API_TOKEN" >>= \case
+      Nothing -> do
+        log Error ("Missing required environment variable: SLACK_API_TOKEN")
+        exitWith (ExitFailure 1)
+      Just x -> pure x
 
   let slackyDir = home ++ ('/':globalSlackyDir)
 
@@ -80,20 +100,13 @@ initSlacky act = do
     (openFd globalPidfile ReadWrite (Just accessModes) defaultFileFlags)
     closeFd
     (\fd -> do
+      log Debug "Acquiring lock on pidfile"
       lockf fd >>= \case
-        True  -> act (void . fdWrite fd . show) (pack token)
+        True  -> act log (void . fdWrite fd . show) (pack token)
         False -> do
           pid <- hGetContents =<< fdToHandle fd
-          hPutStrLn stderr ("Already running: pid " ++ pid)
+          log Error ("Already running: pid " <> show pid)
           exitWith (ExitFailure 1))
-
-requireEnv :: String -> IO String
-requireEnv x =
-  getEnv x >>= \case
-    Nothing -> do
-      hPutStrLn stderr ("Missing required environment variable: " ++ x)
-      exitWith (ExitFailure 1)
-    Just y -> pure y
 
 -- | Empty a TQueue in a single giant transaction, returning elements in
 -- reverse order. Careful - this will retry like crazy if the queue is hot.

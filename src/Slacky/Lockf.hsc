@@ -2,6 +2,8 @@ module Slacky.Lockf
   ( lockf
   ) where
 
+import Slacky.Prelude
+
 import Foreign.C
 import System.Posix.Types (Fd(..))
 
