@@ -5,12 +5,13 @@ module Slacky.Server
   , slackyServer
   ) where
 
-import Slacky.Logger
+import Slacky.LoggerT
 import Slacky.Message
 import Slacky.Prelude
 
+import Control.Monad.Trans.Unlift
 import Data.IORef
-import System.Posix.Files      (removeLink)
+import System.Posix.Files         (removeLink)
 import Network.HTTP.Types
 import Network.Wai
 import Network.Wai.Handler.Warp
@@ -20,8 +21,7 @@ import qualified Data.Map       as Map
 import qualified Network.Socket as Socket
 
 data ServerState = ServerState
-  { log      :: Logger
-  , dequeue  :: IO [Message]
+  { dequeue  :: IO [Message]
   , lastChan :: IORef (Maybe ChannelId)
   , send     :: LText -> IO ()
   , names    :: Map Text Text -- id-to-name mapping
@@ -29,37 +29,56 @@ data ServerState = ServerState
   }
 
 newServerState
-  :: Logger -> IO [Message] -> (LText -> IO ()) -> Map Text Text
-  -> Map Text Text -> IO ServerState
-newServerState log dequeue sendMsg names ids = do
+  :: IO [Message] -> (LText -> IO ()) -> Map Text Text -> Map Text Text
+  -> IO ServerState
+newServerState dequeue sendMsg names ids = do
   lastChan <- newIORef Nothing
-  pure (ServerState log dequeue lastChan sendMsg names ids)
+  pure (ServerState dequeue lastChan sendMsg names ids)
 
-runDomainSocket :: Logger -> FilePath -> Application -> IO ()
-runDomainSocket log sockfile app =
+runDomainSocket
+  :: (MonadLogger m, MonadMask m, MonadIO m, MonadBaseUnlift IO m)
+  => FilePath
+  -> (Request -> (Response -> m ResponseReceived) -> m ResponseReceived) -> m ()
+runDomainSocket sockfile app =
   bracket
-    (Socket.socket Socket.AF_UNIX Socket.Stream 0)
-    (Socket.close)
+    (io (Socket.socket Socket.AF_UNIX Socket.Stream 0))
+    (io . Socket.close)
     (\sock -> do
       log Debug ("Binding server to " <> pack sockfile)
       bracket_
-        (Socket.bind sock (Socket.SockAddrUnix sockfile))
-        (tryAny (removeLink sockfile))
+        (io (Socket.bind sock (Socket.SockAddrUnix sockfile)))
+        (tryAny (io (removeLink sockfile)))
         (do
           log Debug ("Server listening on " <> pack sockfile)
-          Socket.listen sock Socket.maxListenQueue
-          runSettingsSocket defaultSettings sock app))
+          io (Socket.listen sock Socket.maxListenQueue)
 
-slackyServer :: ServerState -> Application
+          app' <- unliftApp app
+          io (runSettingsSocket defaultSettings sock app')))
+
+unliftApp
+  :: (MonadIO m, MonadBaseUnlift IO m)
+  => (Request -> (Response -> m ResponseReceived) -> m ResponseReceived)
+  -> m Application
+unliftApp app = do
+  unlift <- askRunBase
+  pure (\req respond -> unlift (app req (io . respond)))
+
+slackyServer
+  :: (MonadLogger m, MonadIO m)
+  => ServerState -> Request -> (Response -> m ResponseReceived)
+  -> m ResponseReceived
 slackyServer state req respond =
   case pathInfo req of
     [] -> homeR state req respond
     _  -> respond response404
 
 -- /
-homeR :: ServerState -> Application
+homeR
+  :: (MonadLogger m, MonadIO m)
+  => ServerState -> Request -> (Response -> m ResponseReceived)
+  -> m ResponseReceived
 homeR state req respond = do
-  log state Debug ("Server received: " <> show req)
+  log Debug ("Server received: " <> show req)
 
   if | requestMethod req == "GET"  -> getHomeR  state req respond
      | requestMethod req == "POST" -> postHomeR state req respond
@@ -68,12 +87,15 @@ homeR state req respond = do
 -- GET /
 --
 -- Get all messages received since the last GET.
-getHomeR :: ServerState -> Application
+getHomeR
+  :: (MonadLogger m, MonadIO m)
+  => ServerState -> Request -> (Response -> m ResponseReceived)
+  -> m ResponseReceived
 getHomeR ServerState{..} _ respond =
-  dequeue >>= \case
+  io dequeue >>= \case
     [] -> respond (responseLBS status200 [] "")
     (m:ms) -> do
-      atomicWriteIORef lastChan (Just (msgChannel m))
+      io (atomicWriteIORef lastChan (Just (msgChannel m)))
 
       let response :: LByteString
           response = mconcat (map (formatMessage names) (reverse (m:ms)))
@@ -89,7 +111,11 @@ getHomeR ServerState{..} _ respond =
 --   /?text=<msg>&channel=<chan>
 --
 --     Send <msg> to <chan>
-postHomeR :: ServerState -> Application
+postHomeR
+  :: forall m.
+     (MonadLogger m, MonadIO m)
+  => ServerState -> Request -> (Response -> m ResponseReceived)
+  -> m ResponseReceived
 postHomeR ServerState{..} req respond =
   case List.lookup "text" query of
     Just (Just msg) ->
@@ -100,14 +126,14 @@ postHomeR ServerState{..} req respond =
             Just chan_id -> sendMessage msg chan_id
 
         _ ->
-          readIORef lastChan >>= \case
+          io (readIORef lastChan) >>= \case
             Nothing ->
               respond (responseLBS status400 [] "no message to reply to")
             Just chan_id -> sendMessage msg chan_id
 
     _ -> respond (responseLBS status400 [] "missing text param")
  where
-  sendMessage :: ByteString -> ChannelId -> IO ResponseReceived
+  sendMessage :: ByteString -> ChannelId -> m ResponseReceived
   sendMessage msg chan_id = do
     let json :: LText
         json =
@@ -116,7 +142,7 @@ postHomeR ServerState{..} req respond =
             (chan_id, decodeUtf8 msg)
 
     log Debug ("Server sending: " <> json)
-    send json
+    io (send json)
 
     respond (responseLBS status200 [] "")
 

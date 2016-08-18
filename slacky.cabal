@@ -11,34 +11,42 @@ cabal-version:  >= 1.10
 library
   hs-source-dirs:
       src
-  default-extensions: LambdaCase OverloadedStrings MultiWayIf NoImplicitPrelude RecordWildCards
+  default-extensions: DeriveFunctor FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving InstanceSigs LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings RankNTypes RecordWildCards ScopedTypeVariables TypeFamilies ViewPatterns
   ghc-options: -Wall
   build-depends:
       aeson
     , base
     , containers
+    , monad-unlift
     , text
     , unix
+    , async
     , bytestring
     , http-types
     , microlens
+    , monad-control
+    , mtl
     , network
     , network-uri
     , safe-exceptions
     , slack-api
     , text-format
+    , transformers
+    , transformers-base
     , wai
     , warp
     , wreq
   exposed-modules:
       Slack.API.RTM.Start
+      Slacky.Async
       Slacky.Client
       Slacky.Globals
       Slacky.Lockf
-      Slacky.Logger
+      Slacky.LoggerT
       Slacky.Prelude
       Slacky.Server
   other-modules:
+      Slacky.Backoff
       Slacky.Daemon
       Slacky.Message
       Paths_slacky
@@ -48,15 +56,15 @@ executable slacky
   main-is: Main.hs
   hs-source-dirs:
       app
-  default-extensions: LambdaCase OverloadedStrings MultiWayIf NoImplicitPrelude RecordWildCards
+  default-extensions: DeriveFunctor FlexibleContexts FlexibleInstances GeneralizedNewtypeDeriving InstanceSigs LambdaCase MultiParamTypeClasses MultiWayIf NoImplicitPrelude OverloadedStrings RankNTypes RecordWildCards ScopedTypeVariables TypeFamilies ViewPatterns
   ghc-options: -Wall -threaded
   build-depends:
       aeson
     , base
     , containers
+    , monad-unlift
     , text
     , unix
-    , async
     , directory
     , slacky
     , stm

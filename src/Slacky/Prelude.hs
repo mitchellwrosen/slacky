@@ -15,8 +15,10 @@ module Slacky.Prelude
   , format
   , pack
   , show
+  , io
   , module Control.Exception.Safe
   , module Control.Monad
+  , module Control.Monad.IO.Class
   , module Data.Maybe
   , module Data.Monoid
   , module Prelude
@@ -24,6 +26,7 @@ module Slacky.Prelude
 
 import Control.Exception.Safe hiding (Handler)
 import Control.Monad
+import Control.Monad.IO.Class
 import Data.ByteString        (ByteString)
 import Data.Map               (Map)
 import Data.Maybe
@@ -57,3 +60,6 @@ instance DecodeUtf8 LByteString LText where decodeUtf8 = LText.decodeUtf8
 
 show :: (Show a, Pack b) => a -> b
 show = pack . Prelude.show
+
+io :: MonadIO m => IO a -> m a
+io = liftIO

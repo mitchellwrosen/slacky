@@ -4,16 +4,27 @@ version: 0.1.0.0
 ghc-options: -Wall
 
 default-extensions:
+  - DeriveFunctor
+  - FlexibleContexts
+  - FlexibleInstances
+  - GeneralizedNewtypeDeriving
+  - InstanceSigs
   - LambdaCase
-  - OverloadedStrings
+  - MultiParamTypeClasses
   - MultiWayIf
   - NoImplicitPrelude
+  - OverloadedStrings
+  - RankNTypes
   - RecordWildCards
+  - ScopedTypeVariables
+  - TypeFamilies
+  - ViewPatterns
 
 dependencies:
   - aeson
   - base
   - containers
+  - monad-unlift
   - text
   - unix
 
@@ -21,21 +32,27 @@ library:
   source-dirs: src
   exposed-modules:
     - Slack.API.RTM.Start
+    - Slacky.Async
     - Slacky.Client
     - Slacky.Globals
     - Slacky.Lockf
-    - Slacky.Logger
+    - Slacky.LoggerT
     - Slacky.Prelude
     - Slacky.Server
   dependencies:
+    - async
     - bytestring
     - http-types
     - microlens
+    - monad-control
+    - mtl
     - network
     - network-uri
     - safe-exceptions
     - slack-api
     - text-format
+    - transformers
+    - transformers-base
     - wai
     - warp
     - wreq
@@ -46,7 +63,6 @@ executables:
     main: Main.hs
     ghc-options: -threaded
     dependencies:
-      - async
       - directory
       - slacky
       - stm

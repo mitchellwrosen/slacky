@@ -4,7 +4,7 @@ module Slacky.Client
   , slackyClient
   ) where
 
-import Slacky.Logger
+import Slacky.LoggerT
 import Slacky.Message
 import Slacky.Prelude
 
@@ -14,17 +14,16 @@ import qualified Data.ByteString.Lazy as LByteString
 import qualified Web.Slack            as Slack
 
 data ClientState = ClientState
-  { log     :: Logger
-  , enqueue :: Message -> IO ()
+  { enqueue :: Message -> IO ()
   , recv    :: IO LByteString
   }
 
-clientState :: Logger -> (Message -> IO ()) -> IO LByteString -> ClientState
+clientState :: (Message -> IO ()) -> IO LByteString -> ClientState
 clientState = ClientState
 
-slackyClient :: ClientState -> IO ()
+slackyClient :: (MonadLogger m, MonadIO m) => ClientState -> m ()
 slackyClient ClientState{..} = forever $ do
-  bytes <- recv
+  bytes <- io recv
 
   -- Just assume UTF-8 encoding for printing, since pringing out a hex
   -- representation seems less than ideal.
@@ -34,6 +33,6 @@ slackyClient ClientState{..} = forever $ do
 
   case decode bytes of
     Just (Slack.Message chan_id (Slack.UserComment user_id) text _ _ _) ->
-      enqueue (Message (Slack._getId chan_id) (Slack._getId user_id) text)
+      io (enqueue (Message (Slack._getId chan_id) (Slack._getId user_id) text))
 
     _ -> pure ()
