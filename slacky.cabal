@@ -13,13 +13,20 @@ library
   default-extensions: OverloadedStrings
   ghc-options: -Wall
   build-depends:
-      base
+      aeson
+    , base
     , bytestring
+    , network-uri
     , text
+    , vector
     , wreq
   exposed-modules:
       Control.Lens
       Slack.API.RTM.Start
+      Slack.Types.Channel
+      Slack.Types.IM
+      Slack.Types.RTM.Start
+      Slack.Types.User
       Slacky.Prelude
   default-language: Haskell2010
 
@@ -30,6 +37,28 @@ executable slacky
   default-extensions: OverloadedStrings
   ghc-options: -Wall -threaded
   build-depends:
-      base
+      aeson
+    , base
     , slacky
+    , wreq
+  default-language: Haskell2010
+
+test-suite spec
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  hs-source-dirs:
+      test
+  default-extensions: OverloadedStrings OverloadedLists QuasiQuotes
+  ghc-options: -Wall
+  build-depends:
+      aeson
+    , base
+    , aeson-qq
+    , hspec
+    , slacky
+  other-modules:
+      Slack.Types.ChannelSpec
+      Slack.Types.IMSpec
+      Slack.Types.RTM.StartSpec
+      Slack.Types.UserSpec
   default-language: Haskell2010

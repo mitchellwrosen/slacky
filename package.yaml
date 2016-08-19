@@ -4,6 +4,7 @@ version: 0.1.0.0
 ghc-options: -Wall
 
 dependencies:
+  - aeson
   - base
 
 default-extensions:
@@ -13,7 +14,9 @@ library:
   source-dirs: src
   dependencies:
     - bytestring
+    - network-uri
     - text
+    - vector
     - wreq
 
 executables:
@@ -22,4 +25,17 @@ executables:
     main: Main.hs
     ghc-options: -threaded
     dependencies:
+      - slacky
+      - wreq
+
+tests:
+  spec:
+    source-dirs: test
+    main: Spec.hs
+    default-extensions:
+      - OverloadedLists
+      - QuasiQuotes
+    dependencies:
+      - aeson-qq
+      - hspec
       - slacky
