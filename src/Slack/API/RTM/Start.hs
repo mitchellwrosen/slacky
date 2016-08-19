@@ -5,6 +5,7 @@ module Slack.API.RTM.Start
 import Control.Lens
 import Slacky.Prelude
 
+-- https://www.stackage.org/lts-6.11/package/wreq
 import Network.Wreq
 
 type ApiToken = Text
