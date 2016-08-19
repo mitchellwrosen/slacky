@@ -2,6 +2,7 @@ module Main where
 
 import Slack.API.RTM.Start
 import Slacky.Async
+import Slacky.Backoff
 import Slacky.Client
 import Slacky.Globals
 import Slacky.Lockf
@@ -13,6 +14,7 @@ import Control.Concurrent.STM
 import Control.Monad.Trans.Unlift
 import Data.Aeson                 (decode)
 import Data.Tuple                 (swap)
+import Network.Socket             (HostName, PortNumber)
 import System.Directory
 import System.Exit
 import System.IO
@@ -33,29 +35,34 @@ main'
   :: (MonadLogger m, MonadMask m, MonadIO m, MonadBaseUnlift IO m)
   => (ProcessID -> IO ()) -> ApiToken -> m ()
 main' writePid token = do
-  log Info (format "GET {}" (Only rtmStartUrl))
-
-  bytes <- rtmStart token
-  log Debug (decodeUtf8 bytes)
-
-  info@RtmInfo{..} <-
-    case decode bytes of
-      Nothing -> do
-        -- Just be dumb and assume the HTTP response is UTF-8 encoded, since my
-        -- dumb logging framework can only log Text.
-        log Error ("Could not decode response: " <> decodeUtf8 bytes)
-        io (exitWith (ExitFailure 1))
-      Just x -> pure x
-
   -- TODO: add option to daemonize
 
   io (getProcessID >>= writePid)
 
-  log Info (format "Connecting to wss://{}:443{}" (rtmHost, rtmPath))
+  backoff 30 2 2 $ do
+    log Info (format "GET {}" (Only rtmStartUrl))
 
-  UnliftBase unlift <- askUnliftBase
+    bytes <- rtmStart token
+    log Debug (decodeUtf8 bytes)
 
-  io (runSecureClient rtmHost 443 rtmPath (unlift . wsClient info))
+    info@RtmInfo{..} <-
+      case decode bytes of
+        Nothing -> do
+          -- Just be dumb and assume the HTTP response is UTF-8 encoded, since
+          -- my dumb logging framework can only log Text.
+          log Error ("Could not decode response: " <> decodeUtf8 bytes)
+          io (exitWith (ExitFailure 1))
+        Just x -> pure x
+
+    log Info (format "Connecting to wss://{}:443{}" (rtmHost, rtmPath))
+    liftedRunSecureClient rtmHost 443 rtmPath (wsClient info)
+
+liftedRunSecureClient
+  :: (MonadIO m, MonadBaseUnlift IO m)
+  => HostName -> PortNumber -> String -> (WebSockets.Connection -> m a) -> m a
+liftedRunSecureClient host port path app = do
+  unlift <- askRunBase
+  io (runSecureClient host port path (unlift . app))
 
 wsClient
   :: forall m.

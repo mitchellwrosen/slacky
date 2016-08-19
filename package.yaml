@@ -4,6 +4,7 @@ version: 0.1.0.0
 ghc-options: -Wall
 
 default-extensions:
+  - BangPatterns
   - DeriveFunctor
   - FlexibleContexts
   - FlexibleInstances
@@ -25,6 +26,7 @@ dependencies:
   - base
   - containers
   - monad-unlift
+  - network
   - text
   - unix
 
@@ -33,6 +35,7 @@ library:
   exposed-modules:
     - Slack.API.RTM.Start
     - Slacky.Async
+    - Slacky.Backoff
     - Slacky.Client
     - Slacky.Globals
     - Slacky.Lockf
@@ -46,7 +49,6 @@ library:
     - microlens
     - monad-control
     - mtl
-    - network
     - network-uri
     - safe-exceptions
     - slack-api
