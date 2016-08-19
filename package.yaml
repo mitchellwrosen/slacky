@@ -8,7 +8,10 @@ dependencies:
   - base
 
 default-extensions:
+  - LambdaCase
   - OverloadedStrings
+  - RecordWildCards
+  - ViewPatterns
 
 library:
   source-dirs: src

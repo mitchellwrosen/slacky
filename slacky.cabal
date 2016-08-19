@@ -10,7 +10,7 @@ cabal-version:  >= 1.10
 library
   hs-source-dirs:
       src
-  default-extensions: OverloadedStrings
+  default-extensions: LambdaCase OverloadedStrings RecordWildCards ViewPatterns
   ghc-options: -Wall
   build-depends:
       aeson
@@ -34,7 +34,7 @@ executable slacky
   main-is: Main.hs
   hs-source-dirs:
       app
-  default-extensions: OverloadedStrings
+  default-extensions: LambdaCase OverloadedStrings RecordWildCards ViewPatterns
   ghc-options: -Wall -threaded
   build-depends:
       aeson
@@ -48,7 +48,7 @@ test-suite spec
   main-is: Spec.hs
   hs-source-dirs:
       test
-  default-extensions: OverloadedStrings OverloadedLists QuasiQuotes
+  default-extensions: LambdaCase OverloadedStrings RecordWildCards ViewPatterns OverloadedLists QuasiQuotes
   ghc-options: -Wall
   build-depends:
       aeson

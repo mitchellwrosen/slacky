@@ -13,9 +13,9 @@ data IM = IM
   , imUser :: UserId
   } deriving (Eq, Show)
 
--- To test only this instance:
---
---     stack test --fast --file-watch --test-arguments="-m Slack.Types.IM"
---
 instance FromJSON IM where
-  parseJSON = implementMe
+  parseJSON =
+    withObject "object" $ \o -> do
+      ident <- o .: "id"
+      user  <- o .: "user"
+      pure (IM ident user)

@@ -13,9 +13,9 @@ data Channel = Channel
   , channelName :: ChannelName
   } deriving (Eq, Show)
 
--- To test only this instance:
---
---     stack test --fast --file-watch --test-arguments="-m Slack.Types.Channel"
---
 instance FromJSON Channel where
-  parseJSON = implementMe
+  parseJSON =
+    withObject "object" $ \o -> do
+      ident <- o .: "id"
+      name  <- o .: "name"
+      pure (Channel ident name)

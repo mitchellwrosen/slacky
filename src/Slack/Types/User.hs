@@ -13,9 +13,9 @@ data User = User
   , userName :: Text
   } deriving (Eq, Show)
 
--- To test only this instance:
---
---     stack test --fast --file-watch --test-arguments="-m Slack.Types.User"
---
 instance FromJSON User where
-  parseJSON = implementMe
+  parseJSON =
+    withObject "object" $ \o -> do
+      ident <- o .: "id"
+      name  <- o .: "name"
+      pure (User ident name)

@@ -2,8 +2,12 @@ module Main where
 
 import Control.Lens
 import Slacky.Prelude
+import Slack.Types.RTM.Start (RTMStart)
+import Slack.API.RTM.Start   (rtmStart)
 
 -- https://www.stackage.org/lts-6.11/package/base
+import Control.Exception
+import Control.Monad
 import System.Environment
 import System.Exit
 import System.IO
@@ -17,35 +21,45 @@ import qualified Network.Wreq as Wreq
 
 main :: IO ()
 main = do
-  -- Check for environment variable "SLACK_API_TOKEN", and exit if it doesn't
-  -- exist. Use the helper function getEnv', stubbed below.
-  implementMe
+  -- This requires the LambdaCase language extension (see package.yaml).
+  token <-
+    getEnv' "SLACK_API_TOKEN" >>= \case
+      Nothing -> do
+        hPutStrLn stderr "Missing required env variable SLACK_API_TOKEN"
+        exitWith (ExitFailure 1)
+      Just x -> pure x
 
-  -- Pass the token to 'rtmStart' as a Text. You can convert from a String to a
-  -- Text using 'pack', imported from Slacky.Prelude.
-  --
-  -- Extra credit: catch any IO exceptions thrown by 'rtmStart', and print some
-  -- nice error message before ultimately exiting. To accomplish this, import
-  -- the Control.Exception module from base.
-  implementMe
+  response <-
+    catch
+      (rtmStart (pack token))
+      (\e -> do
+        hPutStrLn stderr (displayException (e :: SomeException))
+        exitWith (ExitFailure 1))
 
-  -- Check the status code of the response using the 'responseStatusCode'
-  -- helper function implemented below. If it's not 200, print it and exit.
-  implementMe
+  let code = responseStatusCode response
+  when (code /= 200) $ do
+    hPrint stderr code
+    exitWith (ExitFailure 1)
 
-  -- Then, extract the reponse body using the 'responseBody' helper function
-  -- implemented below, and decode it into an RTMStart using the Data.Aeson
-  -- module. If this fails, print an error message and the un-parseable blob of
-  -- data. If it succeeds, print the RTMStart structure.
-  implementMe
+  let body = responseBody response
+  case decode body of
+    Nothing -> do
+      hPutStrLn stderr "Could not decode response body:"
+      hPrint stderr body
+      exitWith (ExitFailure 1)
+    Just val -> print (val :: RTMStart)
 
 -- | Like 'getEnv' from System.Environment, but instead of throwing a
 -- synchronous exception when the environment variable is not found, return
 -- Nothing.
---
--- Poke around the System.IO.Error module for some simple examples.
 getEnv' :: String -> IO (Maybe String)
-getEnv' = implementMe
+getEnv' name =
+  catchIOError
+    (Just <$> getEnv name)
+    (\e ->
+      if isDoesNotExistError e
+        then pure Nothing
+        else ioError e)
 
 responseStatusCode :: Wreq.Response LByteString -> Int
 responseStatusCode = view (Wreq.responseStatus . Wreq.statusCode)

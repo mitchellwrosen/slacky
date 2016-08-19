@@ -23,23 +23,24 @@ data RTMStart = RTMStart
   , rtmStartIMs      :: Vector IM
   } deriving (Eq, Show)
 
--- Implement the FromJSON instances for User, Channel, and IM first!
---
--- To test only this instance:
---
---     stack test --fast --file-watch --test-arguments="-m Slack.Types.RTM.Start.parseJSON"
---
 instance FromJSON RTMStart where
-  parseJSON = implementMe
+  parseJSON =
+    withObject "object" $ \o -> do
+      True <- o .: "ok"
 
--- Parse a host/path out of a Text.
---
--- Convert from a Text to a String using 'unpack', imported from Slacky.Prelude.
--- Then, use the parsing functions in Network.URI to dig out the host and path.
---
--- To test only this function:
---
---     stack test --fast --file-watch --test-arguments="-m Slack.Types.RTM.Start.parseHostPath"
---
+      Just (host, path) <- fmap parseHostPath (o .: "url")
+
+      users    <- o .: "users"
+      channels <- o .: "channels"
+      groups   <- o .: "groups"
+      ims      <- o .: "ims"
+
+      pure (RTMStart host path users channels groups ims)
+
+-- This uses both view patterns (-XViewPatterns) and record wildcards
+-- (-XRecordWildCards). I've enabled them globally in package.yaml.
 parseHostPath :: Text -> Maybe (String, String)
-parseHostPath = implementMe
+parseHostPath (unpack -> str) = do
+  URI{..}     <- parseURI str
+  URIAuth{..} <- uriAuthority
+  pure (uriRegName, uriPath)
