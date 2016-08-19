@@ -12,7 +12,7 @@ type ApiToken = Text
 
 rtmStart :: ApiToken -> IO (Response LByteString)
 rtmStart token =
-  getWith (opts defaults) "https://api.slack.com/methods/rtm.start"
+  getWith (opts defaults) "https://slack.com/api/rtm.start"
  where
   opts :: Options -> Options
   opts = setParam "token"         token
