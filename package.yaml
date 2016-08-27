@@ -6,8 +6,10 @@ ghc-options: -Wall
 dependencies:
   - aeson
   - base
+  - text-format
 
 default-extensions:
+  - InstanceSigs
   - LambdaCase
   - OverloadedStrings
   - RecordWildCards
@@ -19,6 +21,7 @@ library:
     - bytestring
     - network-uri
     - text
+    - transformers
     - vector
     - wreq
 

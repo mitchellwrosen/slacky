@@ -10,14 +10,16 @@ cabal-version:  >= 1.10
 library
   hs-source-dirs:
       src
-  default-extensions: LambdaCase OverloadedStrings RecordWildCards ViewPatterns
+  default-extensions: InstanceSigs LambdaCase OverloadedStrings RecordWildCards ViewPatterns
   ghc-options: -Wall
   build-depends:
       aeson
     , base
+    , text-format
     , bytestring
     , network-uri
     , text
+    , transformers
     , vector
     , wreq
   exposed-modules:
@@ -27,6 +29,7 @@ library
       Slack.Types.IM
       Slack.Types.RTM.Start
       Slack.Types.User
+      Slacky.Monad
       Slacky.Prelude
   default-language: Haskell2010
 
@@ -34,11 +37,12 @@ executable slacky
   main-is: Main.hs
   hs-source-dirs:
       app
-  default-extensions: LambdaCase OverloadedStrings RecordWildCards ViewPatterns
+  default-extensions: InstanceSigs LambdaCase OverloadedStrings RecordWildCards ViewPatterns
   ghc-options: -Wall -threaded
   build-depends:
       aeson
     , base
+    , text-format
     , slacky
     , wreq
   default-language: Haskell2010
@@ -48,11 +52,12 @@ test-suite spec
   main-is: Spec.hs
   hs-source-dirs:
       test
-  default-extensions: LambdaCase OverloadedStrings RecordWildCards ViewPatterns OverloadedLists QuasiQuotes
+  default-extensions: InstanceSigs LambdaCase OverloadedStrings RecordWildCards ViewPatterns OverloadedLists QuasiQuotes
   ghc-options: -Wall
   build-depends:
       aeson
     , base
+    , text-format
     , aeson-qq
     , hspec
     , slacky

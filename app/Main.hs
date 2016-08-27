@@ -2,6 +2,7 @@ module Main where
 
 import Control.Lens
 import Slacky.Prelude
+import Slacky.Monad
 import Slack.Types.RTM.Start (RTMStart)
 import Slack.API.RTM.Start   (rtmStart)
 
@@ -19,9 +20,20 @@ import Data.Aeson
 -- https://www.stackage.org/lts-6.11/package/wreq
 import qualified Network.Wreq as Wreq
 
+-- Run 'slackyMain' with the desired logging method (to stdout or to stderr) and
+-- the desired threshold (Debug).
 main :: IO ()
-main = do
-  -- This requires the LambdaCase language extension (see package.yaml).
+main = implementMe
+
+-- Port the 'oldMain' code to the 'Slacky' monad by peppering all function calls
+-- in the IO monad with 'io' (exported by Slacky.Prelude). Then, add some log
+-- messages.
+slackyMain :: Slacky ()
+slackyMain = implementMe
+
+-- Gradually move me to 'slackyMain'.
+oldMain :: IO ()
+oldMain = do
   token <-
     getEnv' "SLACK_API_TOKEN" >>= \case
       Nothing -> do
