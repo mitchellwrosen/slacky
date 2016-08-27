@@ -1,5 +1,6 @@
 module Slacky.Prelude
   ( Text.Text
+  , LText
   , LByteString
   , implementMe
   , pack
@@ -25,6 +26,8 @@ import Data.Text.Format (Only(..), format)
 
 type LByteString = LByteString.ByteString
 
+type LText = LText.Text
+
 implementMe :: a
 implementMe = error "Implement me!"
 
@@ -33,6 +36,9 @@ class Pack a where
 
 instance Pack Text.Text where
   pack = Text.pack
+
+instance Pack LText.Text where
+  pack = LText.pack
 
 class Unpack a where
   unpack :: a -> String
