@@ -13,7 +13,7 @@ module Slacky.Monad
 import Slacky.Prelude
 
 -- https://www.stackage.org/lts-6.11/package/base
-import Control.Monad (ap, when)
+import Control.Monad (ap)
 import System.IO
 
 -- https://www.stackage.org/lts-6.11/package/transformers
@@ -37,7 +37,7 @@ newtype Slacky a
 
 instance Functor Slacky where
   fmap :: (a -> b) -> Slacky a -> Slacky b
-  fmap f m = Slacky (fmap f . runSlacky m)
+  fmap = implementMe
 
 instance Applicative Slacky where
   pure :: a -> Slacky a
@@ -48,50 +48,42 @@ instance Applicative Slacky where
 
 instance Monad Slacky where
   return :: a -> Slacky a
-  return x = Slacky (\_ -> return x)
+  return = implementMe
 
   (>>=) :: Slacky a -> (a -> Slacky b) -> Slacky b
-  m >>= f = Slacky (\g -> do
-    a <- runSlacky m g
-    runSlacky (f a) g)
+  (>>=) = implementMe
 
 instance MonadIO Slacky where
   liftIO :: IO a -> Slacky a
-  liftIO m = Slacky (\_ -> m)
+  liftIO = implementMe
 
 -- | In the 'Slacky' monad, return a function that can unlift other 'Slacky'
 -- computations to IO.
 unliftIO :: Slacky (Slacky a -> IO a)
-unliftIO = Slacky (\g -> pure (\m -> runSlacky m g))
+unliftIO = implementMe
 
 -- | Run a 'Slacky' computation, logging all messages at or above the given
 -- 'Severity' to stdout.
 runSlackyStdout :: Severity -> Slacky a -> IO a
-runSlackyStdout = runSlackyHandle stdout
+runSlackyStdout = implementMe
 
 -- | Run a 'Slacky' computation, logging all messages at or above the given
 -- 'Severity' to stderr.
 runSlackyStderr :: Severity -> Slacky a -> IO a
-runSlackyStderr = runSlackyHandle stderr
-
-runSlackyHandle :: Handle -> Severity -> Slacky a -> IO a
-runSlackyHandle h threshold m =
-  runSlacky m (\severity msg ->
-    when (severity >= threshold)
-      (LText.hPutStrLn h (format "[{}]: {}" (show severity, msg))))
+runSlackyStderr = implementMe
 
 -- | Log a debug message.
 logDebug :: LText -> Slacky ()
-logDebug msg = Slacky (\g -> g Debug msg)
+logDebug = implementMe
 
 -- | Log an info message.
 logInfo :: LText -> Slacky ()
-logInfo msg = Slacky (\g -> g Info msg)
+logInfo = implementMe
 
 -- | Log a warning message.
 logWarning :: LText -> Slacky ()
-logWarning msg = Slacky (\g -> g Warning msg)
+logWarning = implementMe
 
 -- | Log an error message.
 logError :: LText -> Slacky ()
-logError msg = Slacky (\g -> g Error msg)
+logError = implementMe
