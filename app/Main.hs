@@ -26,7 +26,7 @@ import qualified Network.Wreq as Wreq
 -- Run 'slackyMain' with the desired logging method (to stdout or to stderr) and
 -- the desired threshold (Debug).
 main :: IO ()
-main = implementMe
+main = runSlackyStderr Debug slackyMain
 
 -- Port the 'oldMain' code to the 'Slacky' monad by peppering all function calls
 -- in the IO monad with 'io' (exported by Slacky.Prelude). Then, replace the

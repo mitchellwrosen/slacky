@@ -29,6 +29,7 @@ library
       Slack.Types.IM
       Slack.Types.RTM.Start
       Slack.Types.User
+      Slacky.Lifted
       Slacky.Monad
       Slacky.Prelude
   default-language: Haskell2010
