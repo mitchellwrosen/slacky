@@ -8,4 +8,6 @@ import Slacky.Prelude
 import Control.Exception
 
 liftedCatch :: Exception e => Slacky a -> (e -> Slacky a) -> Slacky a
-liftedCatch = implementMe
+liftedCatch m k = do
+  unlift <- unliftIO
+  io (catch (unlift m) (\e -> unlift (k e)))
