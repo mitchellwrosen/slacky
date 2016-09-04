@@ -88,12 +88,7 @@ wsClient RtmInfo{..} conn = do
           (clientState (\m -> modifyMVarMasked_ msg_queue (\ms -> pure (m:ms)))
             (WebSockets.receiveData conn))
 
-  -- Note [Unrolled race]
-  bracket
-    (async server)
-    (\a -> cancel a >> waitCatch a)
-    (\a1 -> withAsync client (\a2 -> waitEither_ a1 a2))
-
+  race_ server client
 
 -- | Does the following:
 --
@@ -145,20 +140,3 @@ emptyTQueue q = go []
 
 invertMap :: Ord v => Map k v -> Map v k
 invertMap = Map.fromList . map swap . Map.assocs
-
--- Note [Unrolled race]
---
--- This is *almost* the 'race_' combinator, but 'cancel' is not a sufficient
--- cleanup action for the server, because it has cleanup to perform as well
--- (namely, deleting the sockfile).
---
--- With normal 'withAsync', the cancel's 'throwTo' returns when the
--- ThreadKilled exception is delivered, and then the main thread quits, not
--- necessarily leaving enough time for all of the server's exception handlers
--- to run.
---
--- So, in *our* cleanup action, first send ThreadKilled ('cancel'), then wait
--- on the result var, trusting the server to clean up in a timely manner.
---
--- If not (unlikely? impossible?), a second Ctrl+C will work, and the sockfile
--- might be left on disk. Oh well.

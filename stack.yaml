@@ -1,4 +1,12 @@
 resolver: lts-6.11
+
+packages:
+  - .
+  - location:
+      git: git@github.com:simonmar/async
+      commit: 2e1ae9e25709d8532c14b1ea08d891eaccec704f
+    extra-dep: true
+
 extra-deps:
   - safe-exceptions-0.1.4.0
   - slack-api-0.9
