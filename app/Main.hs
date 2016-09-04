@@ -4,7 +4,7 @@ import Control.Lens
 import Slacky.Lifted
 import Slacky.Prelude
 import Slacky.Monad
-import Slack.Types.RTM.Start (RTMStart(..))
+import Slack.Types.RTM.Start (RTMStart)
 import Slack.API.RTM.Start   (rtmStart)
 
 -- https://www.stackage.org/lts-6.11/package/base
@@ -17,21 +17,11 @@ import System.IO.Error
 -- https://www.stackage.org/lts-6.11/package/aeson
 import Data.Aeson
 
--- https://www.stackage.org/lts-6.11/package/data-default-class
-import Data.Default.Class (def)
-
 -- https://www.stackage.org/lts-6.11/package/text-format-0.3.1.1
 import Data.Text.Format (Shown(..))
 
--- https://www.stackage.org/lts-6.11/package/bytestring
-import qualified Data.ByteString.Lazy as LByteString
-
--- https://www.stackage.org/lts-6.11/package/connection
-import qualified Network.Connection as Connection
-
 -- https://www.stackage.org/lts-6.11/package/websockets
-import qualified Network.WebSockets        as WebSockets
-import qualified Network.WebSockets.Stream as WebSockets
+import qualified Network.WebSockets as WebSockets
 
 -- https://www.stackage.org/lts-6.11/package/wreq
 import qualified Network.Wreq as Wreq
@@ -68,6 +58,16 @@ slackyMain = do
 
   let body = responseBody response
 
+  -- I re-structured this a bit from last time, to help with indentation creep.
+  -- The record wildcard pulls things like rtmStartHost, rtmStartPath, etc. into
+  -- top-level scope. That is,
+  --
+  --   rtmStartHost :: String
+  --
+  -- in this context, even though normally it's a projection function with type
+  --
+  --   rtmStartHost :: RTMStart -> String
+  --
   RTMStart{..} <-
     case decode body of
       Nothing -> do
@@ -76,43 +76,26 @@ slackyMain = do
         io (exitWith (ExitFailure 1))
       Just val -> pure val
 
-  context <- io Connection.initConnectionContext
+  -- Initialize a connection context
+  context <- implementMe
 
-  liftedBracket
-    (io (Connection.connectTo context Connection.ConnectionParams
-      { Connection.connectionHostname  = rtmStartHost
-      , Connection.connectionPort      = 443
-      , Connection.connectionUseSecure = Just def
-      , Connection.connectionUseSocks  = Nothing
-      }))
-    (\conn -> io (Connection.connectionClose conn))
-    (\conn -> do
-      let readConn :: IO (Maybe ByteString)
-          readConn =
-            fmap Just (Connection.connectionGetChunk conn)
-              `catchIOError` \e ->
-                if isEOFError e
-                  then pure Nothing
-                  else throwIO e
+  -- Connect to the Slack host on port 443 over TLS. Remember to clean up the
+  -- collection in an exception-safe way! (You'll need to implement
+  -- 'liftedBracket' for this. Head over to src/Slacky/Lifted.hs).
+  implementMe
 
-          writeConn :: Maybe LByteString -> IO ()
-          writeConn = \case
-            Nothing -> pure ()
-            Just bytes ->
-              Connection.connectionPut conn (LByteString.toStrict bytes)
+  -- Inside the above callback, make a WebSockets stream (again in an
+  -- exception-safe way!)
+  implementMe
 
-      liftedBracket
-        (io (WebSockets.makeStream readConn writeConn))
-        (\stream -> io (WebSockets.close stream))
-        (\stream ->
-          liftedRunClientWithStream stream rtmStartHost rtmStartPath
-            WebSockets.defaultConnectionOptions [] client))
+  -- Inside the callback's callback, run our websocket client! I've stubbed it
+  -- out as 'client' below.
+  implementMe
 
 client :: WebSockets.Connection -> Slacky ()
 client conn = do
-  bytes <- io (WebSockets.receiveData conn)
-  logDebug (format "Received bytes: {}" (Only (bytes :: Text)))
-  client conn
+  -- Loop forever, printing out (as Text) every message received.
+  implementMe
 
 -- | Like 'getEnv' from System.Environment, but instead of throwing a
 -- synchronous exception when the environment variable is not found, return
