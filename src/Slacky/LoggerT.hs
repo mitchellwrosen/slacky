@@ -49,9 +49,9 @@ instance MonadBaseControl b m => MonadBaseControl b (LoggerT m) where
   liftBaseWith k = LoggerT (ReaderT go)
    where
     go :: (Severity -> LText -> m ()) -> m a
-    go log =
+    go lg =
       liftBaseWith
-        (\runInBase -> k (\m -> runInBase (runReaderT (runLoggerT m) log)))
+        (\runInBase -> k (\m -> runInBase (runReaderT (runLoggerT m) lg)))
 
   restoreM :: StM m a -> LoggerT m a
   restoreM x = lift (restoreM x)

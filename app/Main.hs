@@ -10,6 +10,7 @@ import Slacky.LoggerT
 import Slacky.Prelude
 import Slacky.Server
 
+import Control.Concurrent
 import Control.Concurrent.STM
 import Control.Monad.Trans.Unlift
 import Data.Aeson                 (decode)
@@ -69,11 +70,11 @@ wsClient
      (MonadLogger m, MonadMask m, MonadIO m, MonadBaseUnlift IO m)
   => RtmInfo -> WebSockets.Connection -> m ()
 wsClient RtmInfo{..} conn = do
-  msg_queue <- io newTQueueIO
+  msg_queue <- io (newMVar [])
 
   serverState <-
     io (newServerState
-      (atomically (emptyTQueue msg_queue))
+      (swapMVar msg_queue [])
       (WebSockets.sendTextData conn)
       (rtmUsers <> rtmChannels <> rtmGroups <> rtmIMs)
       (invertMap (rtmChannels <> rtmGroups <> rtmIMs)))
@@ -84,7 +85,7 @@ wsClient RtmInfo{..} conn = do
       client :: m ()
       client =
         slackyClient
-          (clientState (atomically . writeTQueue msg_queue)
+          (clientState (\m -> modifyMVarMasked_ msg_queue (\ms -> pure (m:ms)))
             (WebSockets.receiveData conn))
 
   -- Note [Unrolled race]
