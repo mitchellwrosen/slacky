@@ -1,6 +1,7 @@
 module Slacky.Prelude
   ( Text.Text
   , LText
+  , ByteString.ByteString
   , LByteString
   , implementMe
   , pack
@@ -14,6 +15,7 @@ module Slacky.Prelude
 import Control.Monad.IO.Class (MonadIO, liftIO)
 
 -- https://www.stackage.org/lts-6.11/package/bytestring
+import qualified Data.ByteString         as ByteString
 import qualified Data.ByteString.Lazy    as LByteString
 
 -- https://www.stackage.org/lts-6.11/package/text

@@ -1,4 +1,4 @@
--- This file has been generated from package.yaml by hpack version 0.14.0.
+-- This file has been generated from package.yaml by hpack version 0.14.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -15,8 +15,9 @@ library
   build-depends:
       aeson
     , base
-    , text-format
     , bytestring
+    , text-format
+    , websockets
     , network-uri
     , text
     , transformers
@@ -43,7 +44,11 @@ executable slacky
   build-depends:
       aeson
     , base
+    , bytestring
     , text-format
+    , websockets
+    , connection
+    , data-default-class
     , slacky
     , wreq
   default-language: Haskell2010
@@ -58,7 +63,9 @@ test-suite spec
   build-depends:
       aeson
     , base
+    , bytestring
     , text-format
+    , websockets
     , aeson-qq
     , hspec
     , slacky

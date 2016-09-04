@@ -6,7 +6,9 @@ ghc-options: -Wall
 dependencies:
   - aeson
   - base
+  - bytestring
   - text-format
+  - websockets
 
 default-extensions:
   - InstanceSigs
@@ -18,7 +20,6 @@ default-extensions:
 library:
   source-dirs: src
   dependencies:
-    - bytestring
     - network-uri
     - text
     - transformers
@@ -31,6 +32,8 @@ executables:
     main: Main.hs
     ghc-options: -threaded
     dependencies:
+      - connection
+      - data-default-class
       - slacky
       - wreq
 
